@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <filter id="fibers" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0016 0.42" numOctaves="3" seed="5"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.02  0 0 0 0 0.01  0 0 0 0 0  0 0 0 -2.6 1.55"/>
+    </filter>
+    <filter id="w1" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0011 0.021" numOctaves="4" seed="11"/>
+      <feColorMatrix type="matrix" values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 0 1"/>
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="0.13 0.22 0.15 0.27 0.14 0.24 0.12 0.26 0.16 0.23 0.13 0.28 0.15 0.22 0.12 0.25 0.14 0.21 0.13"/>
+        <feFuncG type="table" tableValues="0.065 0.115 0.075 0.14 0.07 0.125 0.06 0.135 0.08 0.12 0.065 0.145 0.075 0.115 0.06 0.13 0.07 0.11 0.065"/>
+        <feFuncB type="table" tableValues="0.03 0.055 0.035 0.068 0.032 0.06 0.028 0.065 0.038 0.058 0.03 0.07 0.035 0.055 0.028 0.062 0.032 0.052 0.03"/>
+      </feComponentTransfer>
+    </filter>
+    <filter id="w2" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0013 0.024" numOctaves="4" seed="27"/>
+      <feColorMatrix type="matrix" values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 0 1"/>
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="0.12 0.2 0.14 0.25 0.13 0.22 0.11 0.24 0.15 0.21 0.12 0.26 0.14 0.2 0.11 0.23 0.13 0.19 0.12"/>
+        <feFuncG type="table" tableValues="0.06 0.105 0.07 0.13 0.065 0.115 0.055 0.125 0.075 0.11 0.06 0.135 0.07 0.105 0.055 0.12 0.065 0.1 0.06"/>
+        <feFuncB type="table" tableValues="0.028 0.05 0.032 0.062 0.03 0.055 0.026 0.06 0.035 0.052 0.028 0.065 0.032 0.05 0.026 0.058 0.03 0.048 0.028"/>
+      </feComponentTransfer>
+    </filter>
+    <filter id="w3" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0009 0.018" numOctaves="4" seed="41"/>
+      <feColorMatrix type="matrix" values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 0 1"/>
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="0.14 0.23 0.16 0.28 0.15 0.25 0.13 0.27 0.17 0.24 0.14 0.29 0.16 0.23 0.13 0.26 0.15 0.22 0.14"/>
+        <feFuncG type="table" tableValues="0.07 0.12 0.08 0.145 0.075 0.13 0.065 0.14 0.085 0.125 0.07 0.15 0.08 0.12 0.065 0.135 0.075 0.115 0.07"/>
+        <feFuncB type="table" tableValues="0.032 0.058 0.037 0.07 0.034 0.062 0.03 0.067 0.04 0.06 0.032 0.072 0.037 0.058 0.03 0.064 0.034 0.055 0.032"/>
+      </feComponentTransfer>
+    </filter>
+    <linearGradient id="bevel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd9a0" stop-opacity="0.10"/>
+      <stop offset="0.06" stop-color="#ffd9a0" stop-opacity="0"/>
+      <stop offset="0.9" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.45"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#0c0603"/>
+
+  <!-- planks: each row is offset so the end joints stagger -->
+  <g>
+    <rect x="0" y="0" width="1600" height="164" filter="url(#w1)"/>
+    <rect x="0" y="167" width="1600" height="164" filter="url(#w2)"/>
+    <rect x="0" y="334" width="1600" height="164" filter="url(#w3)"/>
+    <rect x="0" y="501" width="1600" height="164" filter="url(#w1)" transform="translate(0 0)"/>
+    <rect x="0" y="668" width="1600" height="164" filter="url(#w3)"/>
+    <rect x="0" y="835" width="1600" height="165" filter="url(#w2)"/>
+  </g>
+
+  <rect width="1600" height="1000" filter="url(#fibers)" opacity="0.55"/>
+
+  <!-- bevel shading per plank -->
+  <g fill="url(#bevel)">
+    <rect x="0" y="0" width="1600" height="164"/>
+    <rect x="0" y="167" width="1600" height="164"/>
+    <rect x="0" y="334" width="1600" height="164"/>
+    <rect x="0" y="501" width="1600" height="164"/>
+    <rect x="0" y="668" width="1600" height="164"/>
+    <rect x="0" y="835" width="1600" height="165"/>
+  </g>
+
+  <!-- staggered butt joints -->
+  <g fill="#070302">
+    <rect x="1130" y="0" width="3" height="164"/>
+    <rect x="410" y="167" width="3" height="164"/>
+    <rect x="1420" y="167" width="3" height="164"/>
+    <rect x="760" y="334" width="3" height="164"/>
+    <rect x="220" y="501" width="3" height="164"/>
+    <rect x="1240" y="501" width="3" height="164"/>
+    <rect x="610" y="668" width="3" height="164"/>
+    <rect x="980" y="835" width="3" height="165"/>
+  </g>
+  <g fill="#ffcf8f" opacity="0.08">
+    <rect x="1133" y="0" width="1" height="164"/>
+    <rect x="413" y="167" width="1" height="164"/>
+    <rect x="1423" y="167" width="1" height="164"/>
+    <rect x="763" y="334" width="1" height="164"/>
+    <rect x="223" y="501" width="1" height="164"/>
+    <rect x="1243" y="501" width="1" height="164"/>
+    <rect x="613" y="668" width="1" height="164"/>
+    <rect x="983" y="835" width="1" height="165"/>
+  </g>
+
+  <!-- nail heads at the joints -->
+  <g fill="#1d120a" stroke="#4a3320" stroke-width="1">
+    <circle cx="1118" cy="20" r="4"/><circle cx="1118" cy="144" r="4"/>
+    <circle cx="1145" cy="20" r="4"/><circle cx="1145" cy="144" r="4"/>
+    <circle cx="398" cy="187" r="4"/><circle cx="398" cy="311" r="4"/>
+    <circle cx="425" cy="187" r="4"/><circle cx="425" cy="311" r="4"/>
+    <circle cx="1408" cy="187" r="4"/><circle cx="1435" cy="311" r="4"/>
+    <circle cx="748" cy="354" r="4"/><circle cx="775" cy="478" r="4"/>
+    <circle cx="208" cy="521" r="4"/><circle cx="235" cy="645" r="4"/>
+    <circle cx="1228" cy="521" r="4"/><circle cx="1255" cy="645" r="4"/>
+    <circle cx="598" cy="688" r="4"/><circle cx="625" cy="812" r="4"/>
+    <circle cx="968" cy="855" r="4"/><circle cx="995" cy="980" r="4"/>
+  </g>
+</svg>

@@ -1,0 +1,198 @@
+.chip-face {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.chip-face--photo {
+  object-fit: cover;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.6),
+    0 6px 14px rgba(0, 0, 0, 0.6);
+}
+
+svg.chip-face {
+  filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.6));
+}
+
+/* ---------- Chip manager ---------- */
+
+.chip-editor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip-card {
+  --glow: var(--cyan);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 14px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(201, 161, 74, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.chip-card.is-drop {
+  border-color: color-mix(in srgb, var(--glow) 60%, #fff);
+  box-shadow:
+    0 0 10px var(--glow),
+    inset 0 0 14px color-mix(in srgb, var(--glow) 30%, transparent);
+}
+
+.chip-card__face {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.chip-card__face:hover .chip-face {
+  filter: brightness(1.15);
+}
+
+.chip-card__camera {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #dffcff;
+  background: #1a0e07;
+  border: 1.5px solid color-mix(in srgb, var(--cyan) 50%, #fff);
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+.chip-card__camera .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.chip-card__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.chip-card__fields .field__label {
+  font-size: 1rem;
+}
+
+.chip-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.chip-card__color input {
+  display: block;
+  width: 2.4em;
+  height: 2em;
+  padding: 0;
+  border: 1px solid rgba(201, 161, 74, 0.45);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.chip-card--add {
+  justify-content: center;
+  min-height: 250px;
+  border-style: dashed;
+}
+
+.chip-card__drop-hint {
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+}
+
+/* ---------- Cropper ---------- */
+
+.cropper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.cropper__stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #000;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.cropper__stage:active {
+  cursor: grabbing;
+}
+
+.cropper__image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  pointer-events: none;
+}
+
+.cropper__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid #c6fbff;
+  box-shadow:
+    0 0 0 999px rgba(0, 0, 0, 0.62),
+    0 0 10px var(--cyan),
+    inset 0 0 10px var(--cyan);
+  pointer-events: none;
+}
+
+.cropper__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  text-align: center;
+  color: var(--ink-faint);
+}
+
+.cropper__zoom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  font-family: var(--font-label);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.cropper .fields__row {
+  width: 100%;
+}
+
+.cropper__saved {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #c9ffdf;
+}
