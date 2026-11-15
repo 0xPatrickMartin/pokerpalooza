@@ -17,26 +17,25 @@ To put the clock on a TV or tablet on the same Wi‑Fi, run `npm run dev -- --ho
 
 To host it somewhere, run `npm run build` and serve the `dist/` folder from any static host. `npm run preview` does this locally.
 
-## Deploying with Docker behind an existing nginx
+## Deploying with Docker
 
-The `Dockerfile` builds the app and packs it into a small nginx image that serves the files on port 80 inside Docker. Your main nginx container (the one holding the Let's Encrypt certificates) forwards `d0cksey.com` to it.
+The `Dockerfile` builds the app and packs it into a small nginx image that serves it on port 80. It's made to sit behind [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy) with [acme-companion](https://github.com/nginx-proxy/acme-companion), which route the domain to it and take care of the HTTPS certificate.
 
-On the server (DNS for `d0cksey.com` and `www.d0cksey.com` must point at it):
+On the server, with DNS for `d0cksey.com` and `www.d0cksey.com` pointing at it:
 
-1. `git clone https://github.com/0xPatrickMartin/pokerpalooza.git && cd pokerpalooza`
-2. Find the Docker network your main nginx is on:
-   `docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' <nginx-container>`
-   If it only says `bridge`, make a shared one first:
-   `docker network create proxy && docker network connect proxy <nginx-container>`
-3. `echo "PROXY_NETWORK=<that network>" > .env`
-4. `docker compose up -d --build`
-5. Copy `deploy/proxy/d0cksey.com.step1.conf` into the folder holding your other sites' nginx configs (as `d0cksey.com.conf`), then run
-   `docker exec <nginx-container> nginx -t && docker exec <nginx-container> nginx -s reload`.
-   http://d0cksey.com should now show the app.
-6. Get a certificate for `d0cksey.com` and `www.d0cksey.com` the same way you did for your other sites.
-7. Replace that file with `deploy/proxy/d0cksey.com.conf` and run the same test and reload command.
+```sh
+docker build -t pokerpalooza https://github.com/0xPatrickMartin/pokerpalooza.git
+docker rm -f pokerpalooza 2>/dev/null; docker run -d --name pokerpalooza --restart unless-stopped \
+  -e VIRTUAL_HOST=d0cksey.com,www.d0cksey.com \
+  -e LETSENCRYPT_HOST=d0cksey.com,www.d0cksey.com \
+  pokerpalooza
+```
 
-To update later: `git pull && docker compose up -d --build`.
+Run the same two commands to deploy a new version.
+
+- Docker builds straight from GitHub, so nothing needs to be cloned. Add `#branch-name` to the URL to build a branch other than `main`.
+- If your other site containers use a `--network` flag, add the same one to `docker run`.
+- Visitors to `www.d0cksey.com` are sent to `d0cksey.com`, since the app saves games and chip photos per web address. If `www` doesn't point at the server, leave it out of both variables, or the certificate can't be issued.
 
 ## Using it
 
