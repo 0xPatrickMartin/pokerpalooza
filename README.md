@@ -17,6 +17,27 @@ To put the clock on a TV or tablet on the same Wi‑Fi, run `npm run dev -- --ho
 
 To host it somewhere, run `npm run build` and serve the `dist/` folder from any static host. `npm run preview` does this locally.
 
+## Deploying with Docker behind an existing nginx
+
+The `Dockerfile` builds the app and packs it into a small nginx image that serves the files on port 80 inside Docker. Your main nginx container (the one holding the Let's Encrypt certificates) forwards `d0cksey.com` to it.
+
+On the server (DNS for `d0cksey.com` and `www.d0cksey.com` must point at it):
+
+1. `git clone https://github.com/0xPatrickMartin/pokerpalooza.git && cd pokerpalooza`
+2. Find the Docker network your main nginx is on:
+   `docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' <nginx-container>`
+   If it only says `bridge`, make a shared one first:
+   `docker network create proxy && docker network connect proxy <nginx-container>`
+3. `echo "PROXY_NETWORK=<that network>" > .env`
+4. `docker compose up -d --build`
+5. Copy `deploy/proxy/d0cksey.com.step1.conf` into the folder holding your other sites' nginx configs (as `d0cksey.com.conf`), then run
+   `docker exec <nginx-container> nginx -t && docker exec <nginx-container> nginx -s reload`.
+   http://d0cksey.com should now show the app.
+6. Get a certificate for `d0cksey.com` and `www.d0cksey.com` the same way you did for your other sites.
+7. Replace that file with `deploy/proxy/d0cksey.com.conf` and run the same test and reload command.
+
+To update later: `git pull && docker compose up -d --build`.
+
 ## Using it
 
 **Setup** (shown when no game is in progress):

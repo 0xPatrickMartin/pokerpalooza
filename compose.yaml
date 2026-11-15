@@ -1,0 +1,16 @@
+# On the server: docker compose up -d --build
+services:
+  pokerpalooza:
+    build: .
+    image: pokerpalooza
+    container_name: pokerpalooza
+    restart: unless-stopped
+    networks:
+      - proxy
+
+# Join the Docker network your main nginx container is on, so it can reach http://pokerpalooza.
+# Set its real name in a .env file next to this one, e.g.  PROXY_NETWORK=nginx_default
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}

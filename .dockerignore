@@ -1,0 +1,10 @@
+# Keep the host's node_modules out of the image: they contain native binaries
+# (lightningcss, rolldown, tsc) built for this machine, not for the Linux container.
+node_modules
+dist
+.git
+.env
+*.log
+.DS_Store
+.vscode
+.idea
