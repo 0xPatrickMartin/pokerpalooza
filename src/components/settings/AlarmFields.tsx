@@ -1,13 +1,12 @@
 import { ALARMS, alarms } from '../../audio/alarms'
-import { useStore } from '../../state/context'
-import type { AlarmId, Prefs } from '../../state/types'
+import type { AlarmId } from '../../state/types'
+import { usePrefs } from '../../sync/prefs'
 import { Icon } from '../Icon'
 import { Toggle } from '../Toggle'
 
+/** Alarm settings for this device only, so the TV can blare while the host's phone stays quiet. */
 export function AlarmFields() {
-  const { state, dispatch } = useStore()
-  const { prefs } = state
-  const set = (patch: Partial<Prefs>) => dispatch({ type: 'prefs/set', patch })
+  const [prefs, set] = usePrefs()
 
   const test = (id: AlarmId) => {
     alarms.unlock()

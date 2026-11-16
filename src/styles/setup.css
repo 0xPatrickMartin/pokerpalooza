@@ -7,8 +7,44 @@
 }
 
 .setup__header {
+  position: relative;
+  width: min(1320px, 100%);
   margin-bottom: clamp(20px, 3.5vh, 40px);
   text-align: center;
+}
+
+.setup__back {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.legacy-offer {
+  --glow: var(--amber);
+  width: min(1320px, 100%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: clamp(16px, 2vw, 30px);
+}
+
+.legacy-offer p {
+  margin: 0;
+  flex: 1 1 360px;
+}
+
+.legacy-offer__actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .setup__back {
+    position: static;
+    margin-bottom: 16px;
+  }
 }
 
 .setup__header .neon-sign {

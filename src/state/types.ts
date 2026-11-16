@@ -78,6 +78,8 @@ export interface AlarmState {
 
 export interface Game {
   id: string
+  /** 6-character code players use to follow this game on the live screen */
+  code: string
   config: GameConfig
   players: Player[]
   levelIndex: number
@@ -100,6 +102,7 @@ export interface Chip {
 
 export type AlarmId = 'airhorn' | 'train' | 'gunfight' | 'klaxon' | 'stampede'
 
+/** Alarm settings belong to a device (the TV blares, the phone stays quiet), so they aren't shared. */
 export interface Prefs {
   alarm: AlarmId
   volume: number
@@ -112,9 +115,11 @@ export interface SetupDraft {
   playerNames: string[]
 }
 
-export interface AppState {
+export type TableId = 'spades' | 'hearts' | 'diamonds' | 'clubs'
+
+/** Everything one host's table shares across devices. */
+export interface TableState {
   game: Game | null
   chips: Chip[]
-  prefs: Prefs
   setup: SetupDraft
 }

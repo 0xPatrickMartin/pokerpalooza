@@ -1,12 +1,18 @@
 import { useState } from 'react'
 import { alarms } from '../../audio/alarms'
 import { formatChips, formatMoney } from '../../lib/format'
-import { useStore } from '../../state/context'
+import { uid } from '../../lib/id'
+import { navigate } from '../../lib/route'
 import { DEFAULT_TITLE } from '../../state/defaults'
 import { blindLevelCount } from '../../state/structure'
+import { tableInfo } from '../../state/tables'
 import type { GameConfig, SetupDraft } from '../../state/types'
+import { serverNow } from '../../sync/clock'
+import { useTable } from '../../sync/context'
+import { markLegacyHandled, readLegacy, type LegacyData } from '../../sync/legacy'
 import { ChipFace } from '../ChipFace'
 import { ChipManager } from '../chips/ChipManager'
+import { ConnectionBadge } from '../ConnectionBadge'
 import { Icon } from '../Icon'
 import { NeonSign } from '../NeonSign'
 import { AlarmFields } from '../settings/AlarmFields'
@@ -15,11 +21,33 @@ import { PayoutField, StakesFields } from '../settings/StakesFields'
 import { StructureEditor } from '../settings/StructureEditor'
 import { PlayerNames } from './PlayerNames'
 
+function describeLegacy({ photos, players }: LegacyData): string {
+  const parts = []
+  if (photos > 0) parts.push(`${photos} chip photo${photos === 1 ? '' : 's'}`)
+  if (players > 0) parts.push(`${players} player name${players === 1 ? '' : 's'}`)
+  return parts.length > 0 ? parts.join(' and ') : 'your chip values'
+}
+
 export function SetupScreen() {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, table, status } = useTable()
   const { setup, chips } = state
   const { config, structure, playerNames } = setup
   const [chipsOpen, setChipsOpen] = useState(false)
+  const [legacy, setLegacy] = useState(readLegacy)
+  const info = tableInfo(table)
+
+  const importLegacy = (data: LegacyData) => {
+    dispatch({ type: 'chips/set', chips: [] })
+    // One chip per action keeps each request small; photos add up fast.
+    for (const chip of data.chips) dispatch({ type: 'chips/add', chip })
+    dispatch({ type: 'setup/update', patch: data.setup })
+    markLegacyHandled()
+    setLegacy(null)
+  }
+  const skipLegacy = () => {
+    markLegacyHandled()
+    setLegacy(null)
+  }
 
   const update = (patch: Partial<SetupDraft>) => dispatch({ type: 'setup/update', patch })
   const setConfig = (next: GameConfig) => update({ config: next })
@@ -36,17 +64,41 @@ export function SetupScreen() {
       type: 'game/start',
       config: { ...config, title: config.title.trim() || DEFAULT_TITLE },
       structure,
-      names: playerNames,
-      now: Date.now(),
+      players: playerNames.map((name) => ({ id: uid(), name })),
+      gameId: uid(),
+      code: '',
+      now: serverNow(),
     })
   }
 
   return (
     <div className="setup">
       <header className="setup__header">
-        <NeonSign text={config.title.trim() || DEFAULT_TITLE} />
-        <p className="setup__tagline">Texas Hold'em tournament clock · Est. tonight</p>
+        <button type="button" className="btn btn--small btn--ghost setup__back" onClick={() => navigate('/')}>
+          <Icon name="swap" /> Tables
+        </button>
+        <NeonSign text={config.title.trim() || DEFAULT_TITLE} suit={info.suit} />
+        <p className="setup__tagline">
+          {info.name} table · Texas Hold'em tournament clock
+        </p>
       </header>
+
+      {legacy && (
+        <div className="panel legacy-offer" role="region" aria-label="Bring over saved chips">
+          <p>
+            This browser still has {describeLegacy(legacy)} saved from before tables moved online. Bring them to the{' '}
+            {info.name} table?
+          </p>
+          <div className="legacy-offer__actions">
+            <button type="button" className="btn btn--small btn--primary" onClick={() => importLegacy(legacy)}>
+              Bring them over
+            </button>
+            <button type="button" className="btn btn--small btn--ghost" onClick={skipLegacy}>
+              No thanks
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="setup__grid">
         <div className="setup__col">
@@ -127,6 +179,7 @@ export function SetupScreen() {
         </button>
       </footer>
 
+      <ConnectionBadge status={status} />
       {chipsOpen && <ChipManager onClose={() => setChipsOpen(false)} />}
     </div>
   )

@@ -2,8 +2,18 @@ import { formatChips } from '../../lib/format'
 import type { Chip } from '../../state/types'
 import { ChipFace } from '../ChipFace'
 import { Icon } from '../Icon'
+import { LiveCodeTile } from '../live/LiveCode'
 
-export function ChipTray({ chips, startingStack, onEdit }: { chips: Chip[]; startingStack: number; onEdit: () => void }) {
+interface Props {
+  chips: Chip[]
+  startingStack: number
+  code: string
+  liveUrl: string | null
+  onEdit: () => void
+  onShowCode: () => void
+}
+
+export function ChipTray({ chips, startingStack, code, liveUrl, onEdit, onShowCode }: Props) {
   const sorted = chips.filter((c) => c.value > 0).sort((a, b) => a.value - b.value)
 
   return (
@@ -31,6 +41,7 @@ export function ChipTray({ chips, startingStack, onEdit }: { chips: Chip[]; star
           <Icon name="camera" /> Edit chips
         </button>
       </div>
+      <LiveCodeTile code={code} url={liveUrl} onOpen={onShowCode} />
     </section>
   )
 }

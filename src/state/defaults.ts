@@ -1,6 +1,6 @@
 import { uid } from '../lib/id'
 import { generateLevels } from './structure'
-import type { AppState, Chip, GameConfig, Prefs, SetupDraft, StructureOptions } from './types'
+import type { Chip, GameConfig, Prefs, SetupDraft, StructureOptions, TableState } from './types'
 
 export const DEFAULT_TITLE = 'Pokerpalooza'
 
@@ -40,6 +40,6 @@ export function defaultSetup(): SetupDraft {
   return { config: defaultConfig(), structure: { ...DEFAULT_STRUCTURE }, playerNames: [] }
 }
 
-export function defaultState(): AppState {
-  return { game: null, chips: defaultChips(), prefs: { ...DEFAULT_PREFS }, setup: defaultSetup() }
+export function defaultTableState(): TableState {
+  return { game: null, chips: defaultChips(), setup: defaultSetup() }
 }

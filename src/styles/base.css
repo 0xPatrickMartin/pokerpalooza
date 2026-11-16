@@ -111,7 +111,13 @@ textarea {
 .alarm__title,
 .alarm__amounts,
 .timer-panel__winner,
-.modal__title {
+.modal__title,
+.table-card__suit,
+.live-modal__code,
+.viewer__suit,
+.viewer__level,
+.viewer__chip-value,
+.viewer__banner {
   color: color-mix(in srgb, var(--glow) 22%, #fff);
   text-shadow:
     0 0 1px #fff,

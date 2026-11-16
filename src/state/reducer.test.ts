@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { defaultState, DEFAULT_STRUCTURE } from './defaults'
+import { defaultTableState, DEFAULT_STRUCTURE } from './defaults'
 import { reducer, type Action } from './reducer'
 import { canRebuy, finishingPlaces, payoutAmounts, remainingMs, totals } from './selectors'
-import type { AppState, GameConfig } from './types'
+import type { GameConfig, TableState } from './types'
 
 const MIN = 60_000
 
 function config(overrides: Partial<GameConfig> = {}): GameConfig {
   return {
-    ...defaultState().setup.config,
+    ...defaultTableState().setup.config,
     levelMinutes: 20,
     levels: [
       { id: 'l1', kind: 'blinds', small: 25, big: 50, ante: 0 },
@@ -20,11 +20,19 @@ function config(overrides: Partial<GameConfig> = {}): GameConfig {
   }
 }
 
-function started(cfg = config(), names = ['Doc', 'Wyatt', 'Jane']): AppState {
-  return reducer(defaultState(), { type: 'game/start', config: cfg, structure: DEFAULT_STRUCTURE, names, now: 0 })
+function started(cfg = config(), names = ['Doc', 'Wyatt', 'Jane']): TableState {
+  return reducer(defaultTableState(), {
+    type: 'game/start',
+    config: cfg,
+    structure: DEFAULT_STRUCTURE,
+    players: names.map((name, i) => ({ id: `p${i}`, name })),
+    gameId: 'g1',
+    code: 'ABC234',
+    now: 0,
+  })
 }
 
-function run(state: AppState, ...actions: Action[]): AppState {
+function run(state: TableState, ...actions: Action[]): TableState {
   return actions.reduce(reducer, state)
 }
 
@@ -150,6 +158,14 @@ describe('editing mid-game', () => {
     const levels = s.game!.config.levels.filter((l) => l.id !== 'l1')
     s = run(s, { type: 'game/updateConfig', config: { ...s.game!.config, levels } })
     expect(s.game!.config.levels[s.game!.levelIndex].id).toBe('l3')
+  })
+
+  it('follows the current level when a break is inserted before it', () => {
+    let s = run(started(), { type: 'level/goto', index: 1, now: 0 })
+    const [first, ...rest] = s.game!.config.levels
+    const levels = [first, { id: 'b0', kind: 'break' as const, minutes: 5 }, ...rest]
+    s = run(s, { type: 'game/updateConfig', config: { ...s.game!.config, levels } })
+    expect(s.game!.config.levels[s.game!.levelIndex].id).toBe('l2')
   })
 
   it('applies a new level length to a level that has not started', () => {

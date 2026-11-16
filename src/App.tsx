@@ -1,13 +1,26 @@
 import { useEffect } from 'react'
 import { alarms } from './audio/alarms'
 import { GameScreen } from './components/game/GameScreen'
+import { TableLoading } from './components/picker/TableLoading'
+import { TablePicker } from './components/picker/TablePicker'
 import { SetupScreen } from './components/setup/SetupScreen'
-import { useStore } from './state/context'
+import { usePathname } from './lib/route'
+import { isTableId } from './state/tables'
+import { useTableStore } from './sync/context'
+import { usePrefs } from './sync/prefs'
+import { TableStoreProvider } from './sync/TableStore'
+
+function TableScreen() {
+  const { state, table } = useTableStore()
+  if (!state) return <TableLoading table={table} />
+  return state.game ? <GameScreen game={state.game} /> : <SetupScreen />
+}
 
 export default function App() {
-  const { state } = useStore()
+  const [prefs] = usePrefs()
+  const table = usePathname().slice(1).replace(/\/+$/, '').toLowerCase()
 
-  useEffect(() => alarms.setVolume(state.prefs.volume), [state.prefs.volume])
+  useEffect(() => alarms.setVolume(prefs.volume), [prefs.volume])
 
   // Browsers keep audio locked until the first interaction; arm the alarm on any click or key.
   useEffect(() => {
@@ -20,5 +33,10 @@ export default function App() {
     }
   }, [])
 
-  return state.game ? <GameScreen game={state.game} /> : <SetupScreen />
+  if (!isTableId(table)) return <TablePicker />
+  return (
+    <TableStoreProvider key={table} table={table}>
+      <TableScreen />
+    </TableStoreProvider>
+  )
 }

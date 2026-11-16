@@ -89,6 +89,7 @@ const PATHS = {
     </>
   ),
   exit: <path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10" />,
+  swap: <path d="M4 8h14l-4-4M20 16H6l4 4" />,
   coffee: (
     <>
       <path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z" />

@@ -5,12 +5,18 @@ import { useIdle } from '../../hooks/useIdle'
 import { useTicker } from '../../hooks/useTicker'
 import { useWakeLock } from '../../hooks/useWakeLock'
 import { formatChips, formatClock, formatElapsed } from '../../lib/format'
-import { useStore } from '../../state/context'
+import { navigate } from '../../lib/route'
 import { elapsedMs, remainingMs, totals } from '../../state/selectors'
 import { blindLevelCount, blindLevelNumber } from '../../state/structure'
+import { tableInfo } from '../../state/tables'
 import type { Game } from '../../state/types'
+import { serverNow } from '../../sync/clock'
+import { useTable } from '../../sync/context'
+import { usePrefs } from '../../sync/prefs'
 import { ChipManager } from '../chips/ChipManager'
+import { ConnectionBadge } from '../ConnectionBadge'
 import { Icon } from '../Icon'
+import { LiveCodeModal } from '../live/LiveCode'
 import { NeonSign } from '../NeonSign'
 import { AlarmOverlay } from './AlarmOverlay'
 import { BlindLadder } from './BlindLadder'
@@ -20,34 +26,47 @@ import { GameSettingsModal } from './GameSettingsModal'
 import { PlayersPanel } from './PlayersPanel'
 import { TimerPanel } from './TimerPanel'
 
-type Dialog = 'menu' | MenuChoice | null
+type Dialog = 'menu' | 'code' | MenuChoice | null
+
+// The server ends levels. If it hasn't said so this long after 00:00 the connection is probably
+// down, so this screen moves on by itself (and the alarm still goes off).
+const EXPIRY_GRACE_MS = 1500
 
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement && !!el.closest('input, textarea, select, [contenteditable="true"]')
 
 export function GameScreen({ game }: { game: Game }) {
-  const { state, dispatch } = useStore()
-  const { prefs, chips } = state
-  const [now, setNow] = useState(() => Date.now())
+  const { state, dispatch, table, status, viewerOrigin } = useTable()
+  const [prefs, setPrefs] = usePrefs()
+  const [now, setNow] = useState(serverNow)
   const [dialog, setDialog] = useState<Dialog>(null)
   const fullscreen = useFullscreen()
   const running = game.timer.status === 'running'
   const idle = useIdle(4000, running && dialog == null && !game.alarm.active)
+  const info = tableInfo(table)
 
   useWakeLock(true)
 
+  const tickedFor = useRef<number | null>(null)
   useTicker(running, 250, () => {
-    const t = Date.now()
+    const t = serverNow()
     setNow(t)
-    dispatch({ type: 'timer/tick', now: t })
+    const endsAt = game.timer.endsAt
+    if (endsAt != null && t >= endsAt + EXPIRY_GRACE_MS && tickedFor.current !== endsAt) {
+      tickedFor.current = endsAt
+      dispatch({ type: 'timer/tick', now: t })
+    }
   })
 
-  // Sound the alarm once per expiry. Starting from the stored seq means a page reload won't replay it.
-  const alarmSeq = useRef(game.alarm.seq)
+  // Sound the alarm once per expiry, even if this screen predicted it before the server confirmed it.
+  // Starting from the current count means opening or reloading the page never replays an old alarm.
+  const heard = useRef({ gameId: game.id, seq: game.alarm.seq })
   useEffect(() => {
-    if (game.alarm.seq > alarmSeq.current && !prefs.muted) alarms.play(prefs.alarm)
-    alarmSeq.current = game.alarm.seq
-  }, [game.alarm.seq, prefs.alarm, prefs.muted])
+    if (heard.current.gameId !== game.id) heard.current = { gameId: game.id, seq: game.alarm.seq }
+    if (game.alarm.seq <= heard.current.seq) return
+    heard.current.seq = game.alarm.seq
+    if (!prefs.muted) alarms.play(prefs.alarm)
+  }, [game.id, game.alarm.seq, prefs.alarm, prefs.muted])
 
   useEffect(() => {
     if (!game.alarm.active) alarms.stop()
@@ -58,24 +77,29 @@ export function GameScreen({ game }: { game: Game }) {
   const blindsText = level.kind === 'blinds' ? `${formatChips(level.small)}/${formatChips(level.big)}` : 'Break'
   const clockText = formatClock(remaining)
   useEffect(() => {
-    document.title = `${clockText} · ${blindsText} — ${game.config.title || 'Pokerpalooza'}`
-  }, [clockText, blindsText, game.config.title])
+    document.title = `${clockText} · ${blindsText} — ${info.suit} ${game.config.title || 'Pokerpalooza'}`
+  }, [clockText, blindsText, info.suit, game.config.title])
   useEffect(() => () => void (document.title = 'Pokerpalooza'), [])
 
-  // Every clock action carries one timestamp so the display and the state agree on "now".
-  const stamp = () => {
-    const t = Date.now()
-    setNow(t)
-    return t
-  }
+  const refreshNow = () => setNow(serverNow())
   const toggle = () => {
     alarms.unlock()
-    dispatch({ type: running ? 'timer/pause' : 'timer/start', now: stamp() })
+    refreshNow()
+    dispatch({ type: running ? 'timer/pause' : 'timer/start', now: serverNow() })
   }
-  const goto = (index: number) => dispatch({ type: 'level/goto', index, now: stamp() })
-  const adjust = (deltaMs: number) => dispatch({ type: 'timer/adjust', deltaMs, now: stamp() })
-  const reset = () => dispatch({ type: 'timer/reset', now: stamp() })
-  const toggleMute = () => dispatch({ type: 'prefs/set', patch: { muted: !prefs.muted } })
+  const goto = (index: number) => {
+    refreshNow()
+    dispatch({ type: 'level/goto', index, now: serverNow() })
+  }
+  const adjust = (deltaMs: number) => {
+    refreshNow()
+    dispatch({ type: 'timer/adjust', deltaMs, now: serverNow() })
+  }
+  const reset = () => {
+    refreshNow()
+    dispatch({ type: 'timer/reset', now: serverNow() })
+  }
+  const toggleMute = () => setPrefs({ muted: !prefs.muted })
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -127,9 +151,15 @@ export function GameScreen({ game }: { game: Game }) {
     if (e.target instanceof Element && e.target.closest('.game button')) e.preventDefault()
   }
 
+  const chooseFromMenu = (choice: MenuChoice) => {
+    if (choice === 'switch') navigate('/')
+    else setDialog(choice)
+  }
+
   const soundLocked = running && !prefs.muted && !alarms.ready
   const levels = game.config.levels
   const t = totals(game)
+  const liveUrl = viewerOrigin && game.code ? `${viewerOrigin}/${game.code}` : null
 
   return (
     <div className={`game ${idle ? 'is-idle' : ''}`} onMouseDown={keepFocusOffButtons}>
@@ -147,7 +177,7 @@ export function GameScreen({ game }: { game: Game }) {
             <span className="stat__value">{formatElapsed(elapsedMs(game, now))}</span>
           </div>
         </div>
-        <NeonSign text={game.config.title || 'Pokerpalooza'} />
+        <NeonSign text={game.config.title || 'Pokerpalooza'} suit={info.suit} />
         <div className="game__right">
           <div className="stat stat--right">
             <span className="stat__label">Avg stack</span>
@@ -158,7 +188,7 @@ export function GameScreen({ game }: { game: Game }) {
               type="button"
               className={`icon-btn ${prefs.muted ? 'is-off' : ''}`}
               onClick={toggleMute}
-              title={prefs.muted ? 'Unmute alarm (M)' : 'Mute alarm (M)'}
+              title={prefs.muted ? 'Unmute alarm on this screen (M)' : 'Mute alarm on this screen (M)'}
               aria-label={prefs.muted ? 'Unmute alarm' : 'Mute alarm'}
             >
               <Icon name={prefs.muted ? 'mute' : 'volume'} />
@@ -192,8 +222,16 @@ export function GameScreen({ game }: { game: Game }) {
         onAdjust={adjust}
       />
       <PlayersPanel game={game} />
-      <ChipTray chips={chips} startingStack={game.config.startingStack} onEdit={() => setDialog('chips')} />
+      <ChipTray
+        chips={state.chips}
+        startingStack={game.config.startingStack}
+        code={game.code}
+        liveUrl={liveUrl}
+        onEdit={() => setDialog('chips')}
+        onShowCode={() => setDialog('code')}
+      />
 
+      <ConnectionBadge status={status} />
       {soundLocked && (
         <button type="button" className="sound-banner" onClick={() => alarms.unlock()}>
           <Icon name="mute" /> Tap anywhere to arm the alarm sound
@@ -206,17 +244,19 @@ export function GameScreen({ game }: { game: Game }) {
           game={game}
           onStart={() => {
             alarms.unlock()
-            dispatch({ type: 'timer/start', now: stamp() })
+            refreshNow()
+            dispatch({ type: 'timer/start', now: serverNow() })
           }}
           onDismiss={() => dispatch({ type: 'alarm/dismiss' })}
         />
       )}
 
-      {dialog === 'menu' && <GameMenu onChoose={setDialog} onClose={() => setDialog(null)} />}
+      {dialog === 'menu' && <GameMenu onChoose={chooseFromMenu} onClose={() => setDialog(null)} />}
       {dialog === 'settings' && <GameSettingsModal game={game} onClose={() => setDialog(null)} />}
       {dialog === 'alarm' && <GameSettingsModal game={game} initialTab="alarm" onClose={() => setDialog(null)} />}
       {dialog === 'chips' && <ChipManager onClose={() => setDialog(null)} />}
       {dialog === 'help' && <ShortcutsModal onClose={() => setDialog(null)} />}
+      {dialog === 'code' && liveUrl && <LiveCodeModal code={game.code} url={liveUrl} onClose={() => setDialog(null)} />}
       {dialog === 'end' && (
         <EndGameModal
           onClose={() => setDialog(null)}

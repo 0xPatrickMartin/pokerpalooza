@@ -1,13 +1,14 @@
 import { Icon, type IconName } from '../Icon'
 import { Modal } from '../Modal'
 
-export type MenuChoice = 'settings' | 'chips' | 'alarm' | 'help' | 'end'
+export type MenuChoice = 'settings' | 'chips' | 'alarm' | 'help' | 'switch' | 'end'
 
 const ITEMS: { id: MenuChoice; icon: IconName; label: string; detail: string }[] = [
   { id: 'settings', icon: 'sliders', label: 'Game settings', detail: 'Buy-in, level length, blinds, rebuys, payouts' },
   { id: 'chips', icon: 'camera', label: 'Chips', detail: 'Upload chip photos and set their values' },
-  { id: 'alarm', icon: 'volume', label: 'Alarm sound', detail: 'Pick your poison and test it' },
+  { id: 'alarm', icon: 'volume', label: 'Alarm sound', detail: 'Pick your poison for this screen and test it' },
   { id: 'help', icon: 'keyboard', label: 'Keyboard shortcuts', detail: 'Run the clock without the mouse' },
+  { id: 'switch', icon: 'swap', label: 'Switch table', detail: 'Back to the tables; this game keeps running' },
   { id: 'end', icon: 'exit', label: 'End game', detail: 'Clear the clock and start fresh' },
 ]
 

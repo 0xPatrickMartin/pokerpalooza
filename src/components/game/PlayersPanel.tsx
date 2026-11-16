@@ -1,6 +1,6 @@
 import { useState, type Dispatch } from 'react'
 import { formatMoney, ordinal } from '../../lib/format'
-import { useStore } from '../../state/context'
+import { uid } from '../../lib/id'
 import type { Action } from '../../state/reducer'
 import {
   canRebuy,
@@ -12,6 +12,7 @@ import {
   totals,
 } from '../../state/selectors'
 import type { Game, Player } from '../../state/types'
+import { useTable } from '../../sync/context'
 import { Icon } from '../Icon'
 
 interface RowProps {
@@ -110,7 +111,7 @@ function PlayerRow({ player, place, editing, rebuysEnabled, rebuyAllowed, rebuyP
 }
 
 export function PlayersPanel({ game }: { game: Game }) {
-  const { dispatch } = useStore()
+  const { dispatch } = useTable()
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
@@ -129,7 +130,7 @@ export function PlayersPanel({ game }: { game: Game }) {
 
   const addPlayer = () => {
     const trimmed = name.trim()
-    if (trimmed) dispatch({ type: 'player/add', name: trimmed })
+    if (trimmed) dispatch({ type: 'player/add', id: uid(), name: trimmed })
     setName('')
     setAdding(false)
   }

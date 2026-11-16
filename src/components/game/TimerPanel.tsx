@@ -1,8 +1,9 @@
 import type { CSSProperties } from 'react'
-import { formatChips, formatClock } from '../../lib/format'
+import { formatChips } from '../../lib/format'
 import { remainingMs, winner } from '../../state/selectors'
 import { blindLevelNumber, levelDurationMs } from '../../state/structure'
 import type { Game, Level } from '../../state/types'
+import { Clock } from '../Clock'
 import { Icon } from '../Icon'
 
 interface Props {
@@ -13,19 +14,6 @@ interface Props {
   onNext: () => void
   onReset: () => void
   onAdjust: (deltaMs: number) => void
-}
-
-function Clock({ ms }: { ms: number }) {
-  const text = formatClock(ms)
-  return (
-    <div className="clock" role="timer" aria-label={`${text} remaining`}>
-      {[...text].map((ch, i) => (
-        <span key={i} className={ch === ':' ? 'clock__colon' : 'clock__digit'} aria-hidden="true">
-          {ch}
-        </span>
-      ))}
-    </div>
-  )
 }
 
 function describe(level: Level | undefined, levels: Level[], index: number) {

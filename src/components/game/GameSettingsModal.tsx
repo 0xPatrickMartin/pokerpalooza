@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useStore } from '../../state/context'
 import type { Game, GameConfig } from '../../state/types'
+import { useTable } from '../../sync/context'
 import { Modal } from '../Modal'
 import { AlarmFields } from '../settings/AlarmFields'
 import { RebuyFields } from '../settings/RebuyFields'
@@ -17,7 +17,7 @@ const TABS = [
 type Tab = (typeof TABS)[number]['id']
 
 export function GameSettingsModal({ game, onClose, initialTab = 'game' }: { game: Game; onClose: () => void; initialTab?: Tab }) {
-  const { state, dispatch } = useStore()
+  const { state, dispatch } = useTable()
   const [config, setConfig] = useState<GameConfig>(game.config)
   const [structure, setStructure] = useState(state.setup.structure)
   const [tab, setTab] = useState<Tab>(initialTab)

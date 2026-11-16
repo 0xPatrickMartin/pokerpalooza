@@ -1,17 +1,21 @@
-import { uid } from '../lib/id'
 import { levelDurationMs } from './structure'
-import type {
-  AppState,
-  Chip,
-  Game,
-  GameConfig,
-  Prefs,
-  SetupDraft,
-  StructureOptions,
-} from './types'
+import type { Chip, Game, GameConfig, SetupDraft, StructureOptions, TableState } from './types'
 
+/**
+ * Every device and the server run the same actions through this reducer, so it must be
+ * deterministic: new ids and the game code arrive inside the action instead of being made up here.
+ */
 export type Action =
-  | { type: 'game/start'; config: GameConfig; structure: StructureOptions; names: string[]; now: number }
+  | {
+      type: 'game/start'
+      config: GameConfig
+      structure: StructureOptions
+      players: { id: string; name: string }[]
+      gameId: string
+      /** Filled in by the server */
+      code: string
+      now: number
+    }
   | { type: 'game/end' }
   | { type: 'game/updateConfig'; config: GameConfig }
   | { type: 'timer/start'; now: number }
@@ -21,7 +25,7 @@ export type Action =
   | { type: 'timer/reset'; now: number }
   | { type: 'level/goto'; index: number; now: number }
   | { type: 'alarm/dismiss' }
-  | { type: 'player/add'; name: string }
+  | { type: 'player/add'; id: string; name: string }
   | { type: 'player/remove'; id: string }
   | { type: 'player/rename'; id: string; name: string }
   | { type: 'player/bust'; id: string; now: number }
@@ -30,31 +34,71 @@ export type Action =
   | { type: 'player/unrebuy'; id: string }
   | { type: 'setup/update'; patch: Partial<SetupDraft> }
   | { type: 'chips/set'; chips: Chip[] }
-  | { type: 'prefs/set'; patch: Partial<Prefs> }
+  | { type: 'chips/add'; chip: Chip }
+  | { type: 'chips/update'; id: string; patch: Partial<Omit<Chip, 'id'>> }
+  | { type: 'chips/remove'; id: string }
+  | { type: 'chips/sort' }
 
-type GameAction = Exclude<
-  Action,
-  { type: 'game/start' | 'game/end' | 'setup/update' | 'chips/set' | 'prefs/set' }
->
+type GameAction = Exclude<Action, { type: 'game/start' | 'game/end' | 'setup/update' | `chips/${string}` }>
 
-export function reducer(state: AppState, action: Action): AppState {
+const ACTION_TYPES: Record<Action['type'], true> = {
+  'game/start': true,
+  'game/end': true,
+  'game/updateConfig': true,
+  'timer/start': true,
+  'timer/pause': true,
+  'timer/tick': true,
+  'timer/adjust': true,
+  'timer/reset': true,
+  'level/goto': true,
+  'alarm/dismiss': true,
+  'player/add': true,
+  'player/remove': true,
+  'player/rename': true,
+  'player/bust': true,
+  'player/unbust': true,
+  'player/rebuy': true,
+  'player/unrebuy': true,
+  'setup/update': true,
+  'chips/set': true,
+  'chips/add': true,
+  'chips/update': true,
+  'chips/remove': true,
+  'chips/sort': true,
+}
+
+export function isAction(value: unknown): value is Action {
+  const type = (value as { type?: unknown } | null)?.type
+  return typeof type === 'string' && Object.hasOwn(ACTION_TYPES, type)
+}
+
+export function reducer(state: TableState, action: Action): TableState {
   switch (action.type) {
     case 'game/start': {
-      const { config, structure, names, now } = action
+      const { config, structure, players, now, gameId, code } = action
       return {
         ...state,
-        game: newGame(config, names, now),
-        setup: { config, structure, playerNames: names },
+        game: newGame(config, players, now, gameId, code),
+        setup: { config, structure, playerNames: players.map((p) => p.name) },
       }
     }
     case 'game/end':
-      return { ...state, game: null }
+      return state.game ? { ...state, game: null } : state
     case 'setup/update':
       return { ...state, setup: { ...state.setup, ...action.patch } }
     case 'chips/set':
       return { ...state, chips: action.chips }
-    case 'prefs/set':
-      return { ...state, prefs: { ...state.prefs, ...action.patch } }
+    case 'chips/add':
+      return state.chips.some((c) => c.id === action.chip.id) ? state : { ...state, chips: [...state.chips, action.chip] }
+    case 'chips/update':
+      return {
+        ...state,
+        chips: state.chips.map((c) => (c.id === action.id ? { ...c, ...action.patch, id: c.id } : c)),
+      }
+    case 'chips/remove':
+      return { ...state, chips: state.chips.filter((c) => c.id !== action.id) }
+    case 'chips/sort':
+      return { ...state, chips: [...state.chips].sort((a, b) => a.value - b.value) }
     default: {
       if (!state.game) return state
       const game = gameReducer(state.game, action)
@@ -63,11 +107,18 @@ export function reducer(state: AppState, action: Action): AppState {
   }
 }
 
-export function newGame(config: GameConfig, names: string[], now: number): Game {
+export function newGame(
+  config: GameConfig,
+  players: { id: string; name: string }[],
+  now: number,
+  id: string,
+  code: string,
+): Game {
   return {
-    id: uid(),
+    id,
+    code,
     config,
-    players: names.map((name) => ({ id: uid(), name, rebuys: 0, bustedAt: null })),
+    players: players.map(({ id, name }) => ({ id, name, rebuys: 0, bustedAt: null })),
     levelIndex: 0,
     timer: { status: 'ready', remainingMs: levelDurationMs(config, config.levels[0]), endsAt: null },
     alarm: { seq: 0, active: false, fromIndex: 0, toIndex: 0 },
@@ -171,8 +222,8 @@ function gameReducer(game: Game, action: GameAction): Game {
 
     case 'player/add': {
       const name = action.name.trim()
-      if (!name) return game
-      return { ...game, players: [...game.players, { id: uid(), name, rebuys: 0, bustedAt: null }] }
+      if (!name || game.players.some((p) => p.id === action.id)) return game
+      return { ...game, players: [...game.players, { id: action.id, name, rebuys: 0, bustedAt: null }] }
     }
 
     case 'player/remove':
@@ -197,7 +248,11 @@ function gameReducer(game: Game, action: GameAction): Game {
 
     case 'game/updateConfig': {
       const { config } = action
-      const levelIndex = Math.min(game.levelIndex, config.levels.length - 1)
+      if (config.levels.length === 0) return game
+      // Follow the level being played even if rows before it were added or removed.
+      const currentId = game.config.levels[game.levelIndex]?.id
+      const sameLevel = config.levels.findIndex((l) => l.id === currentId)
+      const levelIndex = sameLevel >= 0 ? sameLevel : Math.min(game.levelIndex, config.levels.length - 1)
       const next: Game = { ...game, config, levelIndex }
       // A level that hasn't been started yet picks up a changed level length.
       if (game.timer.status === 'ready') {

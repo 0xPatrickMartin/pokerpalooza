@@ -1,10 +1,9 @@
 import { useRef, useState, type DragEvent } from 'react'
 import { uid } from '../../lib/id'
 import { loadImage } from '../../lib/image'
-import { useStore } from '../../state/context'
 import { defaultChips } from '../../state/defaults'
-import { useChipsSaveFailed } from '../../state/storageStatus'
 import type { Chip } from '../../state/types'
+import { useTable } from '../../sync/context'
 import { ChipFace } from '../ChipFace'
 import { Icon } from '../Icon'
 import { Modal } from '../Modal'
@@ -20,8 +19,7 @@ interface Cropping {
 const imageFrom = (e: DragEvent) => [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'))
 
 export function ChipManager({ onClose }: { onClose: () => void }) {
-  const { state, dispatch } = useStore()
-  const storageFull = useChipsSaveFailed()
+  const { state, dispatch } = useTable()
   const { chips } = state
   const fileRef = useRef<HTMLInputElement>(null)
   const photoTarget = useRef<string | null>(null)
@@ -29,8 +27,9 @@ export function ChipManager({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
 
-  const setChips = (next: Chip[]) => dispatch({ type: 'chips/set', chips: next })
-  const patch = (id: string, p: Partial<Chip>) => setChips(chips.map((c) => (c.id === id ? { ...c, ...p } : c)))
+  // Small, specific actions: photos are big, and every change is sent to the server.
+  const patch = (id: string, p: Partial<Omit<Chip, 'id'>>) => dispatch({ type: 'chips/update', id, patch: p })
+  const addChip = (chip: Omit<Chip, 'id'>) => dispatch({ type: 'chips/add', chip: { id: uid(), ...chip } })
 
   const choosePhoto = (chipId: string | null) => {
     photoTarget.current = chipId
@@ -56,10 +55,7 @@ export function ChipManager({ onClose }: { onClose: () => void }) {
     if (cropping.chipId) {
       patch(cropping.chipId, { image: result.image, color: result.color })
     } else {
-      setChips([
-        ...chips,
-        { id: uid(), value: result.value ?? 0, label: result.label, color: result.color, image: result.image },
-      ])
+      addChip({ value: result.value ?? 0, label: result.label, color: result.color, image: result.image })
     }
     if (!another) closeCropper()
   }
@@ -89,16 +85,14 @@ export function ChipManager({ onClose }: { onClose: () => void }) {
             type="button"
             className="btn btn--ghost btn--small"
             onClick={() => {
-              if (window.confirm('Replace all chips with the default set? Your photos will be removed.')) setChips(defaultChips())
+              if (window.confirm('Replace all chips with the default set? Your photos will be removed.')) {
+                dispatch({ type: 'chips/set', chips: defaultChips() })
+              }
             }}
           >
             Reset to defaults
           </button>
-          <button
-            type="button"
-            className="btn btn--small"
-            onClick={() => setChips([...chips].sort((a, b) => a.value - b.value))}
-          >
+          <button type="button" className="btn btn--small" onClick={() => dispatch({ type: 'chips/sort' })}>
             Sort by value
           </button>
           <button type="button" className="btn btn--primary" onClick={onClose}>
@@ -109,13 +103,8 @@ export function ChipManager({ onClose }: { onClose: () => void }) {
     >
       <p className="modal__intro">
         Snap or upload a photo of each chip and set what it's worth. One photo of the whole set works too: use
-        <em> Save &amp; crop another</em> to cut out each chip. Photos stay on this device.
+        <em> Save &amp; crop another</em> to cut out each chip. Chips are saved with this table, on every device.
       </p>
-      {storageFull && (
-        <p className="notice notice--warn">
-          Browser storage is full, so the latest photos won't survive a refresh. Remove a photo or two.
-        </p>
-      )}
       {error && <p className="notice notice--warn">{error}</p>}
 
       <ul className="chip-editor">
@@ -156,7 +145,7 @@ export function ChipManager({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 className="mini-btn mini-btn--danger"
-                onClick={() => setChips(chips.filter((c) => c.id !== chip.id))}
+                onClick={() => dispatch({ type: 'chips/remove', id: chip.id })}
                 aria-label={`Delete ${chip.label || chip.value} chip`}
                 title="Delete chip"
               >
@@ -173,7 +162,7 @@ export function ChipManager({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             className="btn btn--small btn--ghost"
-            onClick={() => setChips([...chips, { id: uid(), value: 0, label: '', color: '#8c1d2c', image: null }])}
+            onClick={() => addChip({ value: 0, label: '', color: '#8c1d2c', image: null })}
           >
             <Icon name="plus" /> Add without photo
           </button>
